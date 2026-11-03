@@ -260,13 +260,14 @@ def _prompt_model_selection(
     unavailable_models: Optional[list[str]] = None, portal_url: str = "",
     unavailable_message: str = "", confirm_provider: str = "", confirm_base_url: str = "",
     confirm_api_key: str = "", usage=None,
-    notes: Optional[dict[str, str]] = None, title: str = "Select default model:",
+    notes: Optional[dict[str, str]] = None, title: str = "Select default model:", suggested_model: str = "",
 ) -> Optional[str]:
     """Interactive model picker; current_model listed first. Returns the chosen model ID or None. *title* heads
     the menu (a plugin picking a model for something other than the default says so).
 
     With *pricing* (``{model_id: {prompt, completion}}``) a compact price column is shown; models in
     *unavailable_models* render grayed out and unselectable with an upgrade link to *portal_url*.
+    *suggested_model* sets the initial cursor only when the current model is not in the list.
     *usage* (``model_picker_usage.PickerUsage``, Nous only) swaps ``$/Mtok`` for plan gauges and the
     gateway's per-model usage word on a usage-window plan.
     """
@@ -295,6 +296,8 @@ def _prompt_model_selection(
     # All models for column-width computation (selectable + unavailable). Plan usage is Nous-only chrome.
     window_usage = usage if sale_chrome else None
     ordered, sections, start = _picker_order(model_ids, current_model, window_usage)
+    if current_model not in ordered and suggested_model in ordered:
+        start = ordered.index(suggested_model)
 
     rows = _ModelPickerRows(
         ordered + list(_unavailable), pricing, current_model=current_model, sale_chrome=sale_chrome,
@@ -335,7 +338,7 @@ def _prompt_model_selection(
         idx = curses_radiolist(
             title,
             choices,
-            selected=start,  # cursor on the current model
+            selected=start,  # current model or an explicit suggestion
             cancel_returns=-1,
             description="\n".join(desc_lines) if desc_lines else None,
             searchable=True,

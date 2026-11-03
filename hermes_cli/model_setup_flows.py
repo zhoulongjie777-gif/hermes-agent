@@ -63,14 +63,16 @@ def _model_flow_openrouter(config, current_model=""):
     if abort:
         return
 
-    from hermes_cli.models import model_ids
+    from hermes_cli.models import model_ids, pick_silent_default_model
     from hermes_cli.models_pricing import get_pricing_for_provider
     openrouter_models = model_ids(force_refresh=True)
+    suggested = pick_silent_default_model(openrouter_models) if current_model not in openrouter_models else ""
     # Live pricing is non-blocking — empty dict on failure.
     pricing = get_pricing_for_provider("openrouter", force_refresh=True)
     selected = _prompt_model_selection(
         openrouter_models, current_model=current_model, pricing=pricing, confirm_provider="openrouter",
-        confirm_base_url=OPENROUTER_BASE_URL, confirm_api_key=_resolved or existing_key)
+        confirm_base_url=OPENROUTER_BASE_URL, confirm_api_key=_resolved or existing_key,
+        suggested_model=suggested, notes={suggested: "recommended"} if suggested else None)
     _finish_model(selected, "openrouter", f"Default model set to: {selected} (via OpenRouter)",
                   base_url=OPENROUTER_BASE_URL, api_mode="chat_completions")
 
